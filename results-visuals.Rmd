@@ -1,0 +1,340 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Install packages
+
+```{r}
+#install.packages("tidyverse")
+#install.packages("ggplot2")
+#install.packages("dplyr")
+#install.packages("ggpubr")
+```
+
+Import data and Call libraries
+
+```{r}
+# library(ggplot)
+library(ggplot2)
+library(dplyr)
+library("ggpubr")
+
+manova_data <- read.csv("manova_data.csv" )
+manova_data<- data.frame(manova_data)
+head(manova_data)
+
+```
+
+Gender and Major Satisfaction
+
+```{r}
+# Violin plot
+p <- ggplot(manova_data, aes( x = Gender,
+                              y = MS.weighed.sum)) + 
+  geom_violin(trim=FALSE, fill='lightblue', color="black") + ylim(0,6) + xlim("Female", "Male") +
+  labs(x="Gender at Birth", y="Major Satisfaction", title="Major Satisfaction Weighted Sum by Gender at Birth")
+p <- p + stat_summary(Weighed.FI1.y=mean, geom="point", shape=23, size=2)
+# violin plot with median points
+p <- p + stat_summary(Weighed.FI1.y=median, geom="point", size=2, color="red")
+p <- p + geom_boxplot(width=0.1)
+p
+
+# Paired Samples T-test
+
+
+
+```
+
+Major satisfaction for Grades and Schools and Ethnicity
+
+```{r}
+manova_data$Grade = factor(manova_data$Grade, levels=c("Freshman", "Sophomore",
+                           "Junior", "Senior"))
+
+manova_data = manova_data %>%
+  filter(Grade!="")
+
+grade_mean = manova_data %>%
+  group_by(Grade) %>%
+  summarize(med = round(median(MS.weighed.sum), 3))
+
+# Year
+boxplot(MS.weighed.sum ~ Grade, 
+  data = manova_data,
+  main="Major Satisfaction Score by Grade",
+  xlab="Grade",
+  ylab="Major Satisfaction Score",
+  col="orange",
+  border="brown"
+  )
+
+manova_data %>%
+  ggplot(aes(x=Grade, y=MS.weighed.sum, color=Grade)) +
+  geom_boxplot(width=0.5, alpha=0.5, na.rm=TRUE) +
+  labs(title="Major Satisfaction Score by Grade", 
+       xlab="Grade", ylab="Major Satisfaction Score") +
+  geom_text(data=grade_mean, aes(Grade, med, label=med), 
+                            position = position_dodge(width = 0.5), size = 3,
+                            vjust = -0.6)
+  
+
+# Schools (Bar chart)
+manova_data %>% 
+  ggplot(aes(x=School, y=MS.weighed.sum)) +
+  geom_bar(stat="identity", aes(fill=Socio.Econ)) +
+  coord_flip()
+
+manova_data %>%
+  ggplot(aes(x=MS.weighed.sum, color=School)) +
+  geom_density()
+  
+manova_data %>%
+  ggplot(aes(x=MS.weighed.sum, fill=School)) +
+  geom_histogram(alpha=0.5)
+
+manova_data %>%
+  ggplot(aes(x=MS.weighed.sum, fill=School)) +
+  geom_histogram(alpha=0.5) +
+  facet_wrap(~School)
+```
+
+```{r}
+#not enough data on some ethnicity types so filtered them out
+manova_ethnic = manova_data %>%
+  filter(Ethnicity!="Middle Eastern or North African", 
+         Ethnicity!= "American Indian or Alaska Native", 
+         Ethnicity!="Native Hawaiian or other Pacific Islander")
+
+#creates a data frame that tells 
+manova_ethnic_med_2 = manova_ethnic %>%
+  group_by(Ethnicity) %>%
+  summarize(med = median(Weighed.FI.2)) %>%
+  arrange(med)
+
+manova_ethnic$Ethnicity = factor(manova_ethnic$Ethnicity, 
+                                 levels=manova_ethnic_med_2$Ethnicity)
+
+manova_ethnic %>%
+  ggplot(aes(x=Ethnicity, y=Weighed.FI.2, color=Ethnicity)) +
+  geom_boxplot(width=0.5, alpha=0.5) +
+  labs(title="Weighed FI 2 Score by Ethnicity", 
+       x="Ethnicity", y="Weighted FI 2 Score") +
+  coord_flip() +
+  theme(legend.position = "none")
+```
+
+```{r}
+manova_east_inter = manova_data %>%
+  filter(Ethnicity=="East Asian", International.Student=="Yes")
+
+manova_east_dom = manova_data %>%
+  filter(Ethnicity=="East Asian", International.Student=="No")
+
+manova_east = manova_data %>%
+  filter(Ethnicity=="East Asian")
+
+manova_east %>%
+  ggplot(aes(x=International.Student, y=Weighed.FI.2, color=International.Student)) +
+  geom_boxplot(width=0.5, alpha=0.5) +
+  labs(title="Weighed FI 3 Score by Socioeconomic Status", 
+       x="Socioeconomic Status", y="Weighted FI 3 Score") +
+  theme(legend.position = "none")
+
+```
+
+```{r}
+manova_data %>% 
+  ggplot(aes(x=Socio.Econ, y=Weighed.FI.1)) +
+  geom_bar(stat="identity", position="dodge", 
+           aes(fill=Same.as.Parent.s.Occupations)) +
+  labs(title="Informational Support by Socioeconomic Status") 
+
+manova_data %>%
+  ggplot(aes(x=Socio.Econ, y=Weighed.FI.2, color=International.Student)) +
+  geom_boxplot(width=0.5, alpha=0.5) +
+  labs(title="Weighed FI 2 Score by Socioeconomic Status", 
+       x="Socioeconomic Status", y="Weighted FI 2 Score") +
+  theme(legend.position = "none")
+
+manova_data %>% 
+  ggplot(aes(x=Socio.Econ, fill=Same.as.Parent.s.Occupations)) +
+  geom_bar() +
+  labs(title="Socioeconomic Status by Socioeconomic Status") 
+
+manova_data %>% 
+  ggplot(aes(x=Weighed.FI.1)) +
+  geom_histogram(aes(fill=Same.as.Parent.s.Occupations)) +
+  facet_grid(~Socio.Econ) +
+  labs(title="Informational Support by Socioeconomic Status")
+
+manova_data %>% 
+  ggplot(aes(x=Socio.Econ, y=Weighed.FI.3)) +
+  geom_bar(stat="identity", position="dodge", 
+           aes(fill=Changed.Major.At.Least.Once)) +
+  labs(title="Familial Expectations by Socioeconomic Status",
+       x="Socioeconomic Status") +
+  scale_fill_manual(values=c("lightgreen", "pink"))
+```
+
+```{r}
+library(ggrepel)
+# Major Satisfaction and Family Influence Factor (Density Curves)
+
+# Feeling Controlled
+manova_data %>%
+  ggplot(aes(x=Feeling.Controlled.Weighed.Sum, y=MS.weighed.sum)) +
+  labs(x = "Feeling Controlled by parents", y = "Major Satisfaction", title = "Parental Control and Major Satisfaction")+
+  geom_point(alpha=0.5, aes(color = Changed.Major.At.Least.Once)) +
+  geom_text_repel(aes(label = 1:215)) +
+  geom_density2d() #adds the lines
+
+# Parental Connection
+manova_data %>%
+  ggplot(aes(x=Feeling.Connected.Weighed.Sum, y=MS.weighed.sum)) +
+  labs(x = "Parental connection", y = "Major Satisfaction", title = "Parental Connection and Major Satisfaction")+
+  geom_point(alpha=0.5, aes(color = Changed.Major.At.Least.Once)) +
+  geom_text_repel(aes(label = 1:215)) +
+  geom_density2d() #adds the lines
+
+# Information Support
+manova_data %>%
+  ggplot(aes(x=Weighed.FI.1, y=MS.weighed.sum)) +
+  labs(x = "Informational support", y = "Major Satisfaction", title = "Informational support and Major Satisfaction")+
+  geom_point(alpha=0.5, aes(color = Changed.Major.At.Least.Once )) +
+  geom_text_repel(aes(label = 1:215)) +
+  geom_density2d() #adds the lines
+
+# Financial support
+manova_data %>%
+  ggplot(aes(x=Weighed.FI.2, y=MS.weighed.sum)) +
+  labs(x = "Financial support", y = "Major Satisfaction", title = "Financial support and Major Satisfaction")+
+  geom_point(alpha=0.5, aes(color = Changed.Major.At.Least.Once )) +
+  geom_text_repel(aes(label= if_else(Weighed.FI.2 >3), text, NULL)) +
+  geom_density2d() #adds the lines
+
+
+
+# Family Expectation
+manova_data %>%
+  ggplot(aes(x=Weighed.FI.3, y=MS.weighed.sum)) +
+  labs(x = "Family Expectation", y = "Major Satisfaction", title = "Family Expectation and Major Satisfaction")+
+  geom_point(alpha=0.5, aes(color = Changed.Major.At.Least.Once )) +
+  geom_text_repel(aes(label = 1:215)) +
+  geom_density2d() #adds the lines
+
+# Values and Beliefs
+manova_data %>%
+  ggplot(aes(x=Weighed.FI.4, y=MS.weighed.sum)) +
+  labs(x = "Values/Beliefs", y = "Major Satisfaction", title = "Values/Beliefs and Major Satisfaction")+
+  geom_point(alpha=0.5, aes(color = Changed.Major.At.Least.Once )) +
+  geom_text_repel(aes(label = 1:215)) +
+  geom_density2d() #adds the lines
+
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+manova_data %>%
+  ggplot(aes(x=Feeling.Connected.Weighed.Sum, y=Weighed.FI.1)) +
+  labs(x = "Child-Parent Connection", y = "Information Support", title = "Child-Parent Connection and Information Support")+
+  geom_point(alpha=0.5) +
+  geom_density2d() #adds the lines
+```
+
+
+```{r}
+manova_data %>%
+  ggplot(aes(x=Weighed.FI.1, y=MS.weighed.sum)) +
+  geom_point(alpha=0.5, aes(color=Socio.Econ)) +
+  geom_density2d() #adds the lines
+```
+
+```{r}
+manova_data %>%
+  ggplot(aes(x=Degree.Link.to.Career, y=MS.weighed.sum)) +
+  geom_point(alpha=0.5, aes(color=Socio.Econ)) +
+  geom_density2d() #adds the lines
+```
+
+```{r}
+#code to reorder by highest median
+manova_ethnic_med_3 = manova_ethnic %>%
+  group_by(Ethnicity) %>%
+  summarize(med = median(Weighed.FI.3)) %>%
+  arrange(med)
+
+manova_ethnic$Ethnicity = factor(manova_ethnic$Ethnicity, 
+                                 levels=manova_ethnic_med_3$Ethnicity)
+
+#boxplot for ethnicities by familial expectations sorted
+manova_ethnic %>%
+  ggplot(aes(x=Ethnicity, y=Weighed.FI.3, color=Ethnicity)) +
+  geom_boxplot(width=0.5, alpha=0.5) +
+  labs(title="Weighed FI 3 Score by Ethnicity", 
+       x="Ethnicity", y="Weighted FI 3 Score") +
+  coord_flip() +
+  theme(legend.position = "none")
+```
+
+```{r}
+manova_data %>%
+  ggplot(aes(x=Socio.Econ, y=Weighed.FI.3, color=Socio.Econ)) +
+  geom_boxplot(width=0.5, alpha=0.5) +
+  labs(title="Weighed FI 3 Score by Socioeconomic Status", 
+       x="Socioeconomic Status", y="Weighted FI 3 Score") +
+  theme(legend.position = "none")
+
+```
+
+```{r}
+manova_ethnic %>%
+  ggplot(aes(x=Socio.Econ, y=Feeling.Connected.Weighed.Sum, color=Socio.Econ)) +
+  geom_boxplot(width=0.5, alpha=0.5) +
+  labs(title="Child-Parent Connection by Socioeconomic Status", 
+       x="Socioeconomic Status", y="Weighed Child-Parent Connection Score")
+  # + theme(legend.position = "none")
+```
+
+```{r}
+manova_ethnic %>%
+  ggplot(aes(x=Same.as.Parent.s.Occupations, y=Weighed.FI.4, color=Same.as.Parent.s.Occupations)) +
+  geom_boxplot(width=0.5, alpha=0.5) +
+  labs(title="Weighed FI 4 Score by Parent-Child Occupation Congruence", 
+       x="Occupation Congruence", y="Weighted FI 4 Score") +
+  coord_flip() +
+  theme(legend.position = "none")
+```
+
+
+
+
+```{r}
+# Career pressure by school
+
+manova_data %>%
+  ggplot(aes(y=School, x=Pressure.to.Make.Career.Choice, color=School)) +
+  geom_boxplot(width=0.5, alpha=0.5) +
+  labs(title="", 
+       x="Pressure to Make Career Choice", y="School") +
+  theme(legend.position = "none")
+```
+
+
+
+
+
+
+
+
+
